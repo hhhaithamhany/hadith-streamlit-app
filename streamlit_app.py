@@ -6,7 +6,7 @@ import os
 # 1. Page Configuration
 st.set_page_config(page_title="Hadith & Explanation Browser", page_icon="📖", layout="wide")
 
-# Custom CSS for UI Cards (Fixed <style> tag)
+# Custom CSS for UI Cards
 st.markdown("""
 <style>
     .hadith-card {
@@ -32,10 +32,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Data Loading Function with Safe Downloads (Removed 'fuzzy=True')
+# 2. Data Loading Function with Safe Downloads
 @st.cache_data(show_spinner=False)
 def load_data():
-    # REPLACE WITH YOUR ACTUAL GOOGLE DRIVE FILE IDs
+    # Your actual Google Drive File IDs
     hadith_file_id = "13H7vPAZ6ZL_tBcuXSbohCH9MwXW1SZbn"
     exp_file_id = "1qAjLqJ218JWAZdq44xxBRMmUhKhFHDxV"
     
