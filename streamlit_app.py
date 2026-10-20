@@ -113,8 +113,15 @@ if app_mode == "Hadith Explorer":
 # Step 3: Explanation Source
         st.subheader("Step 3: Select Explanation Source")
         
-        # ⚡ FIX: Since df_explanations keeps 'hadith_id' as a column, standard filtering works perfectly here
-        related_explanations = df_explanations[df_explanations["hadith_id"] == selected_hadith_id]
+        # Safely fetch explanations whether hadith_id is a column or an index
+        try:
+            if "hadith_id" in df_explanations.columns:
+                related_explanations = df_explanations[df_explanations["hadith_id"] == selected_hadith_id]
+            else:
+                # If hadith_id is the index of df_explanations
+                related_explanations = df_explanations.loc[[selected_hadith_id]] if selected_hadith_id in df_explanations.index else pd.DataFrame()
+        except KeyError:
+            related_explanations = pd.DataFrame()
 
         if related_explanations.empty:
             st.warning("⚠️ No explanations available for this Hadith.")
