@@ -93,22 +93,48 @@ if app_mode == "Hadith Explorer":
 
 # Step 2: Hadith ID
     st.subheader("Step 2: Select Hadith ID")
-    available_hadith_ids = coll_hadiths["hadith_id"].tolist()
+    
+    # ⚡ FIX: Use .index instead of ["hadith_id"] since it's now the DataFrame index
+    available_hadith_ids = coll_hadiths.index.tolist()
     
     if available_hadith_ids:
-        # Add a unique key based on the collection so the selectbox resets properly when collection changes
         selected_hadith_id = st.selectbox(
             "Choose Hadith PK:", 
             available_hadith_ids, 
             key=f"hadith_pk_{selected_collection}"
         )
         
-        # Fast row lookup
-        selected_hadith = coll_hadiths.loc[coll_hadiths["hadith_id"] == selected_hadith_id].iloc[0]
+        # ⚡ FIX: Use .loc[] with the index
+        selected_hadith = coll_hadiths.loc[selected_hadith_id]
         
         st.markdown(f"**Hadith ID:** `{selected_hadith_id}` | **Collection:** {selected_collection}")
         st.markdown(f'<div class="hadith-card">{selected_hadith.get("hadith_text", "No text")}</div>', unsafe_allow_html=True)
 
+        # Step 3: Explanation Source
+        st.subheader("Step 3: Select Explanation Source")
+        
+        # Filter explanations using index lookup
+        if selected_hadith_id in df_explanations.index:
+            related_explanations = df_explanations.loc[[selected_hadith_id]] if isinstance(df_explanations.loc[selected_hadith_id], pd.Series) else df_explanations.loc[selected_hadith_id]
+        else:
+            related_explanations = pd.DataFrame()
+
+        if related_explanations.empty:
+            st.warning("⚠️ No explanations available for this Hadith.")
+        else:
+            sources = related_explanations["source_name"].unique().tolist()
+            
+            selected_source = st.selectbox(
+                "Choose Explanation Source:", 
+                sources, 
+                key=f"exp_source_{selected_hadith_id}"
+            )
+
+            # Get the explanation row safely
+            exp_row = related_explanations[related_explanations["source_name"] == selected_source].iloc[0]
+            st.markdown(f"**Source:** {selected_source}")
+            st.markdown(f'<div class="explanation-card">{exp_row.get("explanation_text", "")}</div>', unsafe_allow_html=True)
+            
         # Step 3: Explanation Source
         st.subheader("Step 3: Select Explanation Source")
         
