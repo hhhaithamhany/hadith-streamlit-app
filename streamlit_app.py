@@ -50,9 +50,9 @@ def load_data_from_drive():
     # ⚡ OPTIMIZATION: Set hadith_id as index for lightning-fast, zero-memory lookups
     if 'hadith_id' in df_h.columns:
         df_h = df_h.set_index('hadith_id')
-    #if 'hadith_id' in df_e.columns:
-        # Note: multiple explanations can share the same hadith_id, so group them or keep index
-     #   df_e = df_e.set_index('hadith_id')
+    if 'hadith_id' in df_e.columns:
+         #Note: multiple explanations can share the same hadith_id, so group them or keep index
+        df_e = df_e.set_index('hadith_id')
     return df_h, df_e
 
 df_hadiths, df_explanations = load_data_from_drive()
