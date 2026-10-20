@@ -50,9 +50,9 @@ def load_data_from_drive():
     # ⚡ OPTIMIZATION: Set hadith_id as index for lightning-fast, zero-memory lookups
     if 'hadith_id' in df_h.columns:
         df_h = df_h.set_index('hadith_id')
-    if 'hadith_id' in df_e.columns:
+    #if 'hadith_id' in df_e.columns:
         # Note: multiple explanations can share the same hadith_id, so group them or keep index
-        df_e = df_e.set_index('hadith_id')
+     #   df_e = df_e.set_index('hadith_id')
     return df_h, df_e
 
 df_hadiths, df_explanations = load_data_from_drive()
@@ -110,14 +110,11 @@ if app_mode == "Hadith Explorer":
         st.markdown(f"**Hadith ID:** `{selected_hadith_id}` | **Collection:** {selected_collection}")
         st.markdown(f'<div class="hadith-card">{selected_hadith.get("hadith_text", "No text")}</div>', unsafe_allow_html=True)
 
-        # Step 3: Explanation Source
+# Step 3: Explanation Source
         st.subheader("Step 3: Select Explanation Source")
         
-        # Filter explanations using index lookup
-        if selected_hadith_id in df_explanations.index:
-            related_explanations = df_explanations.loc[[selected_hadith_id]] if isinstance(df_explanations.loc[selected_hadith_id], pd.Series) else df_explanations.loc[selected_hadith_id]
-        else:
-            related_explanations = pd.DataFrame()
+        # ⚡ FIX: Since df_explanations keeps 'hadith_id' as a column, standard filtering works perfectly here
+        related_explanations = df_explanations[df_explanations["hadith_id"] == selected_hadith_id]
 
         if related_explanations.empty:
             st.warning("⚠️ No explanations available for this Hadith.")
@@ -130,30 +127,7 @@ if app_mode == "Hadith Explorer":
                 key=f"exp_source_{selected_hadith_id}"
             )
 
-            # Get the explanation row safely
             exp_row = related_explanations[related_explanations["source_name"] == selected_source].iloc[0]
-            st.markdown(f"**Source:** {selected_source}")
-            st.markdown(f'<div class="explanation-card">{exp_row.get("explanation_text", "")}</div>', unsafe_allow_html=True)
-            
-        # Step 3: Explanation Source
-        st.subheader("Step 3: Select Explanation Source")
-        
-        # Memory-optimized mask filtering
-        related_explanations = coll_explanations[coll_explanations["hadith_id"] == selected_hadith_id]
-
-        if related_explanations.empty:
-            st.warning("⚠️ No explanations available for this Hadith.")
-        else:
-            sources = related_explanations["source_name"].unique().tolist()
-            
-            # Add a unique key here too to prevent state mismatch crashes
-            selected_source = st.selectbox(
-                "Choose Explanation Source:", 
-                sources, 
-                key=f"exp_source_{selected_hadith_id}"
-            )
-
-            exp_row = related_explanations.loc[related_explanations["source_name"] == selected_source].iloc[0]
             st.markdown(f"**Source:** {selected_source}")
             st.markdown(f'<div class="explanation-card">{exp_row.get("explanation_text", "")}</div>', unsafe_allow_html=True)
 
