@@ -32,8 +32,8 @@ def load_data_from_drive():
     hadith_file_id = "13H7vPAZ6ZL_tBcuXSbohCH9MwXW1SZbn"
     exp_file_id = "1qAjLqJ218JWAZdq44xxBRMmUhKhFHDxV"  # Or list your split parts IDs if split
     
-    hadith_path = "hadiths.parquet11"
-    exp_path = "explanations.parquet11"
+    hadith_path = "hadiths.parquet"
+    exp_path = "explanations.parquet"
     
     # Download Hadiths if not already cached in the app environment
     if not os.path.exists(hadith_path):
