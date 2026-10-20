@@ -6,9 +6,9 @@ import os
 # 1. Page Configuration
 st.set_page_config(page_title="Hadith & Explanation Browser", page_icon="📖", layout="wide")
 
-# Custom CSS for UI Cards
+# Custom CSS for UI Cards (Fixed <style> tag)
 st.markdown("""
-<style:
+<style>
     .hadith-card {
         background-color: #f8f9fa;
         border-right: 5px solid #1f77b4;
@@ -32,7 +32,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Data Loading Function with Safe Downloads
+# 2. Data Loading Function with Safe Downloads (Removed 'fuzzy=True')
 @st.cache_data(show_spinner=False)
 def load_data():
     # REPLACE WITH YOUR ACTUAL GOOGLE DRIVE FILE IDs
@@ -46,13 +46,13 @@ def load_data():
     if not os.path.exists(hadith_path) or os.path.getsize(hadith_path) == 0:
         with st.spinner("Downloading Hadiths dataset from Google Drive..."):
             url = f'https://drive.google.com/uc?id={hadith_file_id}'
-            gdown.download(url, output=hadith_path, quiet=False, fuzzy=True)
+            gdown.download(url, output=hadith_path, quiet=False)
             
     # Download Explanations
     if not os.path.exists(exp_path) or os.path.getsize(exp_path) == 0:
         with st.spinner("Downloading Explanations dataset from Google Drive..."):
             url = f'https://drive.google.com/uc?id={exp_file_id}'
-            gdown.download(url, output=exp_path, quiet=False, fuzzy=True)
+            gdown.download(url, output=exp_path, quiet=False)
             
     # Load DataFrames
     df_h = pd.read_parquet(hadith_path)
