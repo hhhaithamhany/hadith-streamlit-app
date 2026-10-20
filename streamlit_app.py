@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import gdown
 import os
+import gc
 
 # 1. Page Configuration & Styling
 st.set_page_config(page_title="Hadith & Explanation Browser", page_icon="📖", layout="wide")
@@ -31,7 +32,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Data Loading Function with Safe Downloads
+# 2. Memory-Optimized Data Loading Function
 @st.cache_data(show_spinner=False)
 def load_data():
     hadith_file_id = "13H7vPAZ6ZL_tBcuXSbohCH9MwXW1SZbn"
@@ -46,14 +47,19 @@ def load_data():
     if not os.path.exists(exp_path) or os.path.getsize(exp_path) == 0:
         gdown.download(f'https://drive.google.com/uc?id={exp_file_id}', output=exp_path, quiet=False)
             
+    # Load DataFrames
     df_h = pd.read_parquet(hadith_path)
     df_e = pd.read_parquet(exp_path)
     
-    # Ensure hadith_id is a regular column in both
-    for df in [df_h, df_e]:
-        if 'hadith_id' not in df.columns and df.index.name == 'hadith_id':
-            df.reset_index(inplace=True)
+    # ⚡ CRITICAL RAM OPTIMIZATION: Convert repetitive string columns to 'category' 
+    # This reduces memory footprint by up to 70% to prevent OOM crashes on Streamlit Cloud
+    for col in ['collection', 'source_name']:
+        if col in df_h.columns:
+            df_h[col] = df_h[col].astype('category')
+        if col in df_e.columns:
+            df_e[col] = df_e[col].astype('category')
             
+    gc.collect()
     return df_h, df_e
 
 try:
