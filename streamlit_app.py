@@ -1,8 +1,7 @@
 import streamlit as st
-import pandas as pd
+import duckdb
 import gdown
 import os
-import gc
 
 # 1. Page Configuration & Styling
 st.set_page_config(page_title="Hadith & Explanation Browser", page_icon="📖", layout="wide")
@@ -32,9 +31,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Memory-Optimized Data Loading Function
-@st.cache_data(show_spinner=False)
-def load_data():
+# 2. Ensure Parquet Files are Downloaded
+@st.cache_resource
+def init_data_files():
     hadith_file_id = "13H7vPAZ6ZL_tBcuXSbohCH9MwXW1SZbn"
     exp_file_id = "1qAjLqJ218JWAZdq44xxBRMmUhKhFHDxV"
     
@@ -46,40 +45,30 @@ def load_data():
             
     if not os.path.exists(exp_path) or os.path.getsize(exp_path) == 0:
         gdown.download(f'https://drive.google.com/uc?id={exp_file_id}', output=exp_path, quiet=False)
-            
-    # Load DataFrames
-    df_h = pd.read_parquet(hadith_path)
-    df_e = pd.read_parquet(exp_path)
-    
-    # ⚡ CRITICAL RAM OPTIMIZATION: Convert repetitive string columns to 'category' 
-    # This reduces memory footprint by up to 70% to prevent OOM crashes on Streamlit Cloud
-    for col in ['collection', 'source_name']:
-        if col in df_h.columns:
-            df_h[col] = df_h[col].astype('category')
-        if col in df_e.columns:
-            df_e[col] = df_e[col].astype('category')
-            
-    gc.collect()
-    return df_h, df_e
+        
+    return hadith_path, exp_path
 
-try:
-    df_hadiths, df_explanations = load_data()
-except Exception as e:
-    st.error(f"❌ Error loading data: {e}")
-    st.stop()
+hadith_path, exp_path = init_data_files()
 
-# 3. Application UI
+# 3. Application UI using DuckDB (Zero Memory Footprint)
 st.title("📖 Hadith & Explanation Browser")
 
-# Step 1: Select Collection
-st.subheader("Step 1: Select Collection")
-collections = df_hadiths["collection"].unique().tolist()
+# Step 1: Get distinct collections using DuckDB
+@st.cache_data
+def get_collections():
+    query = f"SELECT DISTINCT collection FROM '{hadith_path}' WHERE collection IS NOT NULL ORDER BY collection"
+    return duckdb.sql(query).df()["collection"].tolist()
+
+collections = get_collections()
 selected_collection = st.selectbox("Choose Collection:", collections)
 
-coll_hadiths = df_hadiths[df_hadiths["collection"] == selected_collection]
+# Step 2: Get Hadith IDs for selected collection
+@st.cache_data
+def get_hadiths_by_collection(coll):
+    query = f"SELECT hadith_id, hadith_text FROM '{hadith_path}' WHERE collection = ?"
+    return duckdb.sql(query, params=[coll]).df()
 
-# Step 2: Select Hadith ID
-st.subheader("Step 2: Select Hadith ID")
+coll_hadiths = get_hadiths_by_collection(selected_collection)
 available_hadith_ids = coll_hadiths["hadith_id"].tolist()
 
 if available_hadith_ids:
@@ -94,10 +83,13 @@ if available_hadith_ids:
     st.markdown(f"**Hadith ID:** `{selected_hadith_id}` | **Collection:** {selected_collection}")
     st.markdown(f'<div class="hadith-card">{hadith_row["hadith_text"]}</div>', unsafe_allow_html=True)
 
-    # Step 3: Select Explanation Source
-    st.subheader("Step 3: Select Explanation Source")
-    
-    related_explanations = df_explanations[df_explanations["hadith_id"] == selected_hadith_id]
+    # Step 3: Get Explanations for selected Hadith ID on the fly
+    @st.cache_data
+    def get_explanations(h_id):
+        query = f"SELECT source_name, explanation_text FROM '{exp_path}' WHERE hadith_id = ?"
+        return duckdb.sql(query, params=[h_id]).df()
+
+    related_explanations = get_explanations(selected_hadith_id)
 
     if related_explanations.empty:
         st.warning("⚠️ No explanations available for this Hadith.")
